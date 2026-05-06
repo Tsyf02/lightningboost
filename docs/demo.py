@@ -118,13 +118,6 @@ def demo_cloud_backend_status():
     logger.info("\nChecking Cloud Backend...")
     if cloud_client.get_health():
         logger.info("✅ Cloud Backend: HEALTHY")
-        
-        # List tasks
-        try:
-            tasks = cloud_client.session.get("http://localhost:8000/api/v1/tasks").json()
-            logger.info(f"   Tasks in system: {tasks.get('total', 0)}")
-        except:
-            logger.warning("   Could not fetch task list")
     else:
         logger.warning("⚠️ Cloud Backend: OFFLINE (not running)")
     
@@ -132,12 +125,9 @@ def demo_cloud_backend_status():
     logger.info("\nChecking vLLM Endpoint...")
     if vllm_client.health_check():
         logger.info("✅ vLLM: HEALTHY")
-        
         models = vllm_client.list_models()
         if models:
             logger.info(f"   Available models: {len(models)}")
-            for model in models[:3]:
-                logger.info(f"     - {model.get('id', 'unknown')}")
     else:
         logger.warning("⚠️ vLLM: OFFLINE (not running)")
 
@@ -166,11 +156,6 @@ def main():
         logger.info("1. Start cloud backend: python cloud_backend/server.py")
         logger.info("2. Start frontend: streamlit run frontend/app.py")
         logger.info("3. Start local agent: python local_agent/main.py")
-        logger.info("4. Or use Docker: docker-compose up (from infra/)")
-        
-        logger.info("\n📖 Documentation:")
-        logger.info("- See README.md for project overview")
-        logger.info("- See docs/ for architecture and setup guide")
         
     except Exception as e:
         logger.error(f"❌ Demo failed: {e}", exc_info=True)

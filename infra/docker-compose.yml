@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # vLLM Inference Engine (AMD MI300X GPU)
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: lightningboost-vllm
+    environment:
+      - MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      - vllm_cache:/root/.cache
+    ports:
+      - "8001:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: amd
+              count: 1
+              capabilities: [gpu]
+
+  # Cloud Backend API
+  cloud-backend:
+    build:
+      context: ./cloud_backend
+      dockerfile: Dockerfile
+    container_name: lightningboost-backend
+    environment:
+      - VLLM_BASE_URL=http://vllm:8000
+      - CLOUD_HOST=0.0.0.0
+      - CLOUD_PORT=8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      vllm:
+        condition: service_healthy
+    volumes:
+      - ./cloud_backend:/app
+      - ./shared:/app/shared
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Dashboard
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: lightningboost-frontend
+    environment:
+      - CLOUD_BASE_URL=http://cloud-backend:8000
+      - VLLM_BASE_URL=http://vllm:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - cloud-backend
+    volumes:
+      - ./frontend:/app
+      - ./shared:/app/shared
+
+volumes:
+  vllm_cache:
+
+networks:
+  default:
+    name: lightningboost-network
