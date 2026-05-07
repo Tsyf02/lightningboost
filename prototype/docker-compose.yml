@@ -1,0 +1,145 @@
+# ─── LightningBoost · infra/docker-compose.yml (MERGED PERFECT) ──────────────
+#
+# ⚠️  CJ's original used vllm/vllm-openai:latest (CUDA build) + CUDA_VISIBLE_DEVICES
+#     That WILL NOT WORK on AMD GPUs. This file fixes all AMD/ROCm issues.
+#
+# USAGE:
+#   Local dev (no GPU):
+#     docker compose up backend frontend
+#
+#   Full AMD cloud stack (run this on your AMD Dev Cloud instance):
+#     COMPOSE_PROFILES=gpu docker compose up -d
+#
+# SERVICES:
+#   backend   – FastAPI cloud backend          → port 8000
+#   frontend  – Streamlit dashboard            → port 8501
+#   vllm      – vLLM with ROCm (AMD GPU)       → port 8001  [profile: gpu]
+#   agent     – Local monitoring agent          → (no port, internal)
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: "3.9"
+
+x-amd-gpu: &amd-gpu                  # ← reusable AMD device block
+  devices:
+    - /dev/kfd                        # AMD GPU kernel fusion driver
+    - /dev/dri                        # Direct rendering interface
+  group_add:
+    - video                           # Required group for GPU access
+  ipc: host
+  shm_size: "16g"
+
+x-env: &common-env
+  HF_API_TOKEN:           ${HF_API_TOKEN:-}
+  CLOUD_API_KEY:          ${CLOUD_API_KEY:-lightningboost_secret}
+  LOG_LEVEL:              ${LOG_LEVEL:-INFO}
+
+services:
+
+  # ── vLLM — AMD ROCm GPU inference ──────────────────────────────────────────
+  # FIX: CJ used vllm/vllm-openai:latest (CUDA). We use the ROCm build.
+  # FIX: Removed CUDA_VISIBLE_DEVICES (wrong for AMD). Use HIP_VISIBLE_DEVICES.
+  vllm:
+    image: rocm/vllm:latest           # ← correct AMD ROCm vLLM image
+    container_name: lb_vllm
+    profiles: ["gpu"]
+    <<: *amd-gpu                      # attach AMD GPU devices
+    ports:
+      - "8001:8000"
+    environment:
+      HUGGING_FACE_HUB_TOKEN:   ${HF_API_TOKEN:-}
+      HIP_VISIBLE_DEVICES:      "0"   # ← AMD uses HIP, not CUDA
+      # Alternatively use ROCR_VISIBLE_DEVICES for older ROCm versions
+    command: >
+      --model ${VLLM_MODEL:-meta-llama/Llama-3.1-8B-Instruct}
+      --dtype float16
+      --max-model-len 4096
+      --gpu-memory-utilization 0.90
+    volumes:
+      - vllm_cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s            # vLLM needs time to load the model
+      retries: 5
+    restart: unless-stopped
+
+  # ── FastAPI Cloud Backend ───────────────────────────────────────────────────
+  backend:
+    build:
+      context: ..
+      dockerfile: cloud_backend/Dockerfile
+    container_name: lb_backend
+    ports:
+      - "8000:8000"
+    environment:
+      <<: *common-env
+      CLOUD_HOST:         0.0.0.0
+      CLOUD_PORT:         8000
+      # When GPU profile is active, vLLM is at http://vllm:8000 internally
+      VLLM_BASE_URL:      ${VLLM_BASE_URL:-http://vllm:8000}
+      VLLM_MODEL:         ${VLLM_MODEL:-meta-llama/Llama-3.1-8B-Instruct}
+      RAM_THRESHOLD_HIGH: ${RAM_THRESHOLD_HIGH:-80}
+      RAM_THRESHOLD_MEDIUM: ${RAM_THRESHOLD_MEDIUM:-60}
+    volumes:
+      - ../cloud_backend:/app/cloud_backend
+      - ../shared:/app/shared
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ── Streamlit Dashboard ─────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
+    container_name: lb_frontend
+    ports:
+      - "8501:8501"
+    environment:
+      <<: *common-env
+      CLOUD_BASE_URL:     http://backend:8000
+      VLLM_BASE_URL:      http://vllm:8000
+      DASHBOARD_REFRESH_SECONDS: ${DASHBOARD_REFRESH_SECONDS:-3}
+    volumes:
+      - ../frontend:/app/frontend
+      - ../shared:/app/shared
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ── Local Agent (optional — runs the monitoring loop) ──────────────────────
+  agent:
+    build:
+      context: ..
+      dockerfile: local_agent/Dockerfile
+    container_name: lb_agent
+    profiles: ["agent"]
+    environment:
+      <<: *common-env
+      CLOUD_BASE_URL:       http://backend:8000
+      VLLM_BASE_URL:        http://vllm:8000
+      MONITOR_INTERVAL:     ${MONITOR_INTERVAL:-2}
+      RAM_THRESHOLD_HIGH:   ${RAM_THRESHOLD_HIGH:-80}
+      MIN_LOCAL_RAM_MB:     ${MIN_LOCAL_RAM_MB:-500}
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  vllm_cache:
+    driver: local
+
+networks:
+  default:
+    name: lightningboost-network
