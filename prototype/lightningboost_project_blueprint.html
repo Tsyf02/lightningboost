@@ -1,0 +1,398 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.lb-wrap{font-family:var(--font-sans);padding:1rem 0}
+.lb-hero{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem}
+.lb-bolt{width:36px;height:36px;display:flex;align-items:center;justify-content:center}
+.lb-bolt svg{width:28px;height:28px}
+.lb-title{font-size:22px;font-weight:500;color:var(--color-text-primary)}
+.lb-sub{font-size:13px;color:var(--color-text-secondary);margin-top:2px}
+.tabs{display:flex;gap:0;border-bottom:0.5px solid var(--color-border-secondary);margin-bottom:1.5rem}
+.tab{padding:8px 16px;font-size:13px;font-weight:500;color:var(--color-text-secondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;transition:color .15s}
+.tab.active{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary)}
+.tab:hover{color:var(--color-text-primary)}
+.panel{display:none}.panel.active{display:block}
+.badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;border:0.5px solid}
+.badge-blue{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.badge-green{background:var(--color-background-success);color:var(--color-text-success);border-color:var(--color-border-success)}
+.badge-warn{background:var(--color-background-warning);color:var(--color-text-warning);border-color:var(--color-border-warning)}
+.badge-red{background:var(--color-background-danger);color:var(--color-text-danger);border-color:var(--color-border-danger)}
+.role-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.role-card{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:14px;border:0.5px solid var(--color-border-tertiary)}
+.role-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px}
+.role-open{font-size:11px;color:var(--color-text-success);font-weight:500;margin-bottom:10px}
+.role-tags{display:flex;flex-wrap:wrap;gap:4px}
+.role-tag{font-size:10px;padding:2px 6px;border-radius:3px;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary)}
+.phase-list{display:flex;flex-direction:column;gap:0}
+.phase{display:flex;gap:16px;padding:16px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.phase:last-child{border-bottom:none}
+.phase-num{display:flex;flex-direction:column;align-items:center;gap:0}
+.phase-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0}
+.phase-line{width:1px;background:var(--color-border-tertiary);flex:1;min-height:8px}
+.phase-body{flex:1}
+.phase-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.phase-name{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+.phase-week{font-size:11px;color:var(--color-text-tertiary)}
+.phase-desc{font-size:13px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:8px}
+.phase-tasks{display:flex;flex-wrap:wrap;gap:4px}
+.task-chip{font-size:11px;padding:3px 8px;border-radius:4px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary)}
+.stack-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:1rem}
+.stack-card{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:12px}
+.stack-layer{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-tertiary);margin-bottom:4px}
+.stack-name{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.stack-detail{font-size:11px;color:var(--color-text-secondary)}
+.info-bar{background:var(--color-background-info);border:0.5px solid var(--color-border-info);border-radius:var(--border-radius-md);padding:10px 14px;font-size:12px;color:var(--color-text-info);margin-bottom:1.5rem}
+.section-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-tertiary);margin-bottom:10px}
+</style>
+
+<div class="lb-wrap">
+  <div class="lb-hero">
+    <div class="lb-bolt">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z" fill="var(--color-text-warning)" stroke="var(--color-border-warning)" stroke-width="1" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="lb-title">LightningBoost &nbsp;<span class="badge badge-warn">AMD Hackathon</span></div>
+      <div class="lb-sub">MeowMission · From Meows to the Moon · Hybrid Local–Cloud Performance Booster</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('arch')">Architecture</div>
+    <div class="tab" onclick="switchTab('roadmap')">Build Roadmap</div>
+    <div class="tab" onclick="switchTab('team')">Team Roles</div>
+    <div class="tab" onclick="switchTab('stack')">Tech Stack</div>
+  </div>
+
+  <!-- ARCHITECTURE -->
+  <div class="panel active" id="panel-arch">
+    <div class="info-bar">The core idea: your low-RAM laptop stays lightweight. Heavy AI tasks are detected and routed to AMD cloud GPUs via ROCm + HuggingFace, then results stream back locally.</div>
+    <svg width="100%" viewBox="0 0 680 460" role="img">
+      <title>LightningBoost system architecture</title>
+      <desc>Three-layer architecture: local device, Flask backend, and AMD cloud GPU</desc>
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- Layer labels -->
+      <text class="ts" x="80" y="32" text-anchor="middle" dominant-baseline="central">Local device</text>
+      <text class="ts" x="340" y="32" text-anchor="middle" dominant-baseline="central">Flask backend</text>
+      <text class="ts" x="600" y="32" text-anchor="middle" dominant-baseline="central">AMD cloud</text>
+
+      <!-- Dividers -->
+      <line x1="210" y1="20" x2="210" y2="440" stroke="var(--color-border-tertiary)" stroke-width="0.5" stroke-dasharray="4 4"/>
+      <line x1="470" y1="20" x2="470" y2="440" stroke="var(--color-border-tertiary)" stroke-width="0.5" stroke-dasharray="4 4"/>
+
+      <!-- LOCAL: Streamlit UI -->
+      <g class="c-teal">
+        <rect x="20" y="55" width="160" height="52" rx="8" stroke-width="0.5"/>
+        <text class="th" x="100" y="77" text-anchor="middle" dominant-baseline="central">Streamlit UI</text>
+        <text class="ts" x="100" y="96" text-anchor="middle" dominant-baseline="central">User-facing dashboard</text>
+      </g>
+
+      <!-- LOCAL: psutil monitor -->
+      <g class="c-teal">
+        <rect x="20" y="135" width="160" height="52" rx="8" stroke-width="0.5"/>
+        <text class="th" x="100" y="157" text-anchor="middle" dominant-baseline="central">psutil monitor</text>
+        <text class="ts" x="100" y="176" text-anchor="middle" dominant-baseline="central">RAM / CPU real-time</text>
+      </g>
+
+      <!-- LOCAL: Task detector -->
+      <g class="c-teal">
+        <rect x="20" y="215" width="160" height="52" rx="8" stroke-width="0.5"/>
+        <text class="th" x="100" y="237" text-anchor="middle" dominant-baseline="central">Task detector</text>
+        <text class="ts" x="100" y="256" text-anchor="middle" dominant-baseline="central">Flags heavy workloads</text>
+      </g>
+
+      <!-- BACKEND: Resource analyzer -->
+      <g class="c-purple">
+        <rect x="240" y="75" width="180" height="52" rx="8" stroke-width="0.5"/>
+        <text class="th" x="330" y="97" text-anchor="middle" dominant-baseline="central">Resource analyzer</text>
+        <text class="ts" x="330" y="116" text-anchor="middle" dominant-baseline="central">Flask + psutil logic</text>
+      </g>
+
+      <!-- BACKEND: LangChain advisor -->
+      <g class="c-purple">
+        <rect x="240" y="155" width="180" height="52" rx="8" stroke-width="0.5"/>
+        <text class="th" x="330" y="177" text-anchor="middle" dominant-baseline="central">LangChain advisor</text>
+        <text class="ts" x="330" y="196" text-anchor="middle" dominant-baseline="central">Smart optimiz. tips</text>
+      </g>
+
+      <!-- BACKEND: Task router -->
+      <g class="c-purple">
+        <rect x="240" y="235" width="180" height="52" rx="8" stroke-width="0.5"/>
+        <text class="th" x="330" y="257" text-anchor="middle" dominant-baseline="central">Task router</text>
+        <text class="ts" x="330" y="276" text-anchor="middle" dominant-baseline="central">Local vs cloud decision</text>
+      </g>
+
+      <!-- CLOUD: AMD Dev Cloud -->
+      <g class="c-amber">
+        <rect x="500" y="75" width="160" height="52" rx="8" stroke-width="0.5"/>
+        <text class="th" x="580" y="97" text-anchor="middle" dominant-baseline="central">AMD Dev Cloud</text>
+        <text class="ts" x="580" y="116" text-anchor="middle" dominant-baseline="central">ROCm GPU instance</text>
+      </g>
+
+      <!-- CLOUD: Docker + ROCm -->
+      <g class="c-amber">
+        <rect x="500" y="155" width="160" height="52" rx="8" stroke-width="0.5"/>
+        <text class="th" x="580" y="177" text-anchor="middle" dominant-baseline="central">Docker + ROCm</text>
+        <text class="ts" x="580" y="196" text-anchor="middle" dominant-baseline="central">PyTorch GPU container</text>
+      </g>
+
+      <!-- CLOUD: HuggingFace -->
+      <g class="c-amber">
+        <rect x="500" y="235" width="160" height="52" rx="8" stroke-width="0.5"/>
+        <text class="th" x="580" y="257" text-anchor="middle" dominant-baseline="central">HuggingFace TGI</text>
+        <text class="ts" x="580" y="276" text-anchor="middle" dominant-baseline="central">Model inference API</text>
+      </g>
+
+      <!-- Arrows: Local → Backend -->
+      <line x1="180" y1="100" x2="238" y2="100" stroke="var(--color-text-info)" stroke-width="1" marker-end="url(#arr)" fill="none"/>
+      <line x1="180" y1="161" x2="238" y2="181" stroke="var(--color-text-info)" stroke-width="1" marker-end="url(#arr)" fill="none"/>
+      <line x1="180" y1="241" x2="238" y2="261" stroke="var(--color-text-info)" stroke-width="1" marker-end="url(#arr)" fill="none"/>
+
+      <!-- Arrows: Backend → Cloud -->
+      <line x1="420" y1="100" x2="498" y2="100" stroke="var(--color-text-warning)" stroke-width="1" marker-end="url(#arr)" fill="none"/>
+      <line x1="420" y1="181" x2="498" y2="181" stroke="var(--color-text-warning)" stroke-width="1" marker-end="url(#arr)" fill="none"/>
+      <line x1="420" y1="261" x2="498" y2="261" stroke="var(--color-text-warning)" stroke-width="1" marker-end="url(#arr)" fill="none"/>
+
+      <!-- Return arrow: Cloud result back to local -->
+      <path d="M580 287 L580 380 L100 380 L100 289" fill="none" stroke="var(--color-text-success)" stroke-width="1" stroke-dasharray="5 3" marker-end="url(#arr)"/>
+      <text class="ts" x="340" y="398" text-anchor="middle">Results streamed back to local UI</text>
+
+      <!-- Legend -->
+      <line x1="40" y1="430" x2="60" y2="430" stroke="var(--color-text-info)" stroke-width="1"/>
+      <text class="ts" x="64" y="430">Local → Backend</text>
+      <line x1="180" y1="430" x2="200" y2="430" stroke="var(--color-text-warning)" stroke-width="1"/>
+      <text class="ts" x="204" y="430">Backend → Cloud</text>
+      <line x1="330" y1="430" x2="350" y2="430" stroke="var(--color-text-success)" stroke-width="1" stroke-dasharray="4 2"/>
+      <text class="ts" x="354" y="430">Result return</text>
+    </svg>
+  </div>
+
+  <!-- ROADMAP -->
+  <div class="panel" id="panel-roadmap">
+    <div class="phase-list">
+      <div class="phase">
+        <div class="phase-num">
+          <div class="phase-dot badge badge-green">1</div>
+          <div class="phase-line"></div>
+        </div>
+        <div class="phase-body">
+          <div class="phase-header">
+            <div class="phase-name">Local monitor MVP</div>
+            <span class="badge badge-green">Days 1–2</span>
+          </div>
+          <div class="phase-desc">Build the foundation: a Streamlit dashboard that reads RAM, CPU, and process data from psutil. Flask serves the data as a REST API. This is the first thing you demo.</div>
+          <div class="phase-tasks">
+            <span class="task-chip">psutil integration</span>
+            <span class="task-chip">Flask /metrics endpoint</span>
+            <span class="task-chip">Streamlit live dashboard</span>
+            <span class="task-chip">RAM % gauge</span>
+            <span class="task-chip">Process list</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num">
+          <div class="phase-dot badge badge-blue">2</div>
+          <div class="phase-line"></div>
+        </div>
+        <div class="phase-body">
+          <div class="phase-header">
+            <div class="phase-name">AI optimizer (LangChain + HuggingFace)</div>
+            <span class="badge badge-blue">Days 2–3</span>
+          </div>
+          <div class="phase-desc">Add smart recommendations using LangChain chained to a HuggingFace model. When RAM is low, the AI suggests what to close, what to defer, and how to reclaim memory without user guesswork.</div>
+          <div class="phase-tasks">
+            <span class="task-chip">LangChain chain setup</span>
+            <span class="task-chip">HuggingFace model API</span>
+            <span class="task-chip">Prompt engineering</span>
+            <span class="task-chip">Tip display in UI</span>
+            <span class="task-chip">Threshold triggers</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num">
+          <div class="phase-dot badge badge-warn">3</div>
+          <div class="phase-line"></div>
+        </div>
+        <div class="phase-body">
+          <div class="phase-header">
+            <div class="phase-name">AMD cloud offload</div>
+            <span class="badge badge-warn">Days 3–5</span>
+          </div>
+          <div class="phase-desc">The core AMD hackathon integration. Heavy tasks detected locally are serialized and sent to an AMD Developer Cloud GPU instance running a ROCm-accelerated Docker container. HuggingFace TGI (text-generation-inference) handles model serving with ROCm backend.</div>
+          <div class="phase-tasks">
+            <span class="task-chip">AMD Dev Cloud setup</span>
+            <span class="task-chip">ROCm Docker container</span>
+            <span class="task-chip">HuggingFace TGI (rocm)</span>
+            <span class="task-chip">Task serializer</span>
+            <span class="task-chip">Result streaming</span>
+            <span class="task-chip">Offload trigger logic</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num">
+          <div class="phase-dot badge badge-red">4</div>
+          <div class="phase-line"></div>
+        </div>
+        <div class="phase-body">
+          <div class="phase-header">
+            <div class="phase-name">Polish + demo prep</div>
+            <span class="badge badge-red">Days 5–7</span>
+          </div>
+          <div class="phase-desc">UI polish, error handling, demo script, and a technical walkthrough writeup (required for AMD Build in Public prize track). Record a short demo video showing the full local → cloud → result loop.</div>
+          <div class="phase-tasks">
+            <span class="task-chip">UI polish</span>
+            <span class="task-chip">Error handling</span>
+            <span class="task-chip">Demo video</span>
+            <span class="task-chip">GitHub README</span>
+            <span class="task-chip">Technical blog post</span>
+            <span class="task-chip">Open source</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEAM -->
+  <div class="panel" id="panel-team">
+    <div class="info-bar">5 open roles · Pick what matches your skills. All roles contribute to the MVP from day 1.</div>
+    <div class="role-grid">
+      <div class="role-card">
+        <div class="role-title">Backend developer</div>
+        <div class="role-open">Open ✓</div>
+        <div class="role-tags">
+          <span class="role-tag">Python</span>
+          <span class="role-tag">Flask</span>
+          <span class="role-tag">Docker</span>
+          <span class="role-tag">psutil</span>
+          <span class="role-tag">REST API</span>
+        </div>
+      </div>
+      <div class="role-card">
+        <div class="role-title">Cloud engineer</div>
+        <div class="role-open">Open ✓</div>
+        <div class="role-tags">
+          <span class="role-tag">AMD Dev Cloud</span>
+          <span class="role-tag">ROCm</span>
+          <span class="role-tag">Docker</span>
+          <span class="role-tag">GPU workloads</span>
+        </div>
+      </div>
+      <div class="role-card">
+        <div class="role-title">AI / ML engineer</div>
+        <div class="role-open">Open ✓</div>
+        <div class="role-tags">
+          <span class="role-tag">LangChain</span>
+          <span class="role-tag">HuggingFace</span>
+          <span class="role-tag">TGI</span>
+          <span class="role-tag">PyTorch</span>
+          <span class="role-tag">Prompt eng.</span>
+        </div>
+      </div>
+      <div class="role-card">
+        <div class="role-title">Frontend developer</div>
+        <div class="role-open">Open ✓</div>
+        <div class="role-tags">
+          <span class="role-tag">Streamlit</span>
+          <span class="role-tag">HTML/CSS</span>
+          <span class="role-tag">Python</span>
+          <span class="role-tag">Data viz</span>
+        </div>
+      </div>
+      <div class="role-card">
+        <div class="role-title">UI / UX designer</div>
+        <div class="role-open">Open ✓</div>
+        <div class="role-tags">
+          <span class="role-tag">Wireframes</span>
+          <span class="role-tag">User flows</span>
+          <span class="role-tag">Figma</span>
+          <span class="role-tag">Accessibility</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STACK -->
+  <div class="panel" id="panel-stack">
+    <div class="section-label">Full tech stack breakdown</div>
+    <div class="stack-grid">
+      <div class="stack-card">
+        <div class="stack-layer">Monitoring</div>
+        <div class="stack-name">psutil</div>
+        <div class="stack-detail">RAM, CPU, process tracking</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-layer">Backend</div>
+        <div class="stack-name">Flask</div>
+        <div class="stack-detail">REST API, task router</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-layer">Frontend</div>
+        <div class="stack-name">Streamlit</div>
+        <div class="stack-detail">Live dashboard UI</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-layer">AI advisor</div>
+        <div class="stack-name">LangChain</div>
+        <div class="stack-detail">Optimization chains</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-layer">Models</div>
+        <div class="stack-name">HuggingFace TGI</div>
+        <div class="stack-detail">Inference w/ ROCm backend</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-layer">GPU runtime</div>
+        <div class="stack-name">AMD ROCm</div>
+        <div class="stack-detail">PyTorch GPU acceleration</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-layer">Cloud</div>
+        <div class="stack-name">AMD Dev Cloud</div>
+        <div class="stack-detail">MI300X / Instinct GPUs</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-layer">Containers</div>
+        <div class="stack-name">Docker</div>
+        <div class="stack-detail">rocm/pytorch base image</div>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem">
+      <div class="section-label">Key AMD docker image to use</div>
+      <div style="background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:12px;font-family:var(--font-mono);font-size:12px;color:var(--color-text-secondary);line-height:1.7">
+        docker run -it --device=/dev/kfd --device=/dev/dri \<br>
+        &nbsp;&nbsp;--group-add=video --ipc=host \<br>
+        &nbsp;&nbsp;-v $(pwd):/workspace \<br>
+        &nbsp;&nbsp;<span style="color:var(--color-text-warning)">rocm/pytorch:rocm6.3.1_ubuntu22.04_py3.10_pytorch</span>
+      </div>
+    </div>
+
+    <div style="margin-top:1rem">
+      <div class="section-label">HuggingFace TGI with ROCm</div>
+      <div style="background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:12px;font-family:var(--font-mono);font-size:12px;color:var(--color-text-secondary);line-height:1.7">
+        docker pull <span style="color:var(--color-text-info)">ghcr.io/huggingface/text-generation-inference:latest-rocm</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const tabs = ['arch','roadmap','team','stack'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
+}
+</script>
