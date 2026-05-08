@@ -149,7 +149,7 @@ lightningboost/
 ### 1. Clone and set up
 
 ```bash
-git clone https://github.com/MeowMission/lightningboost.git
+git clone https://github.com/Tsyf02/lightningboost.git
 cd lightningboost
 
 python -m venv venv
