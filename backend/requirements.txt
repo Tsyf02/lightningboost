@@ -3,3 +3,4 @@ flask-cors
 psutil
 requests
 python-dotenv
+pytest

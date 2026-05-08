@@ -13,6 +13,7 @@ app = Flask(__name__)
 CORS(app)
 
 @app.route('/', methods=['GET'])
+@app.route('/health', methods=['GET'])
 def index():
     """Root endpoint to verify the API is running."""
     return jsonify({
