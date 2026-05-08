@@ -371,6 +371,6 @@ MIT License - Open for hackathon evaluation
 
 ---
 
-**Made for AMD Developer Hackathon 2024**
+**Made for AMD Developer Hackathon 2026**
 
 "From Meows to the Moon" 🐱➡️🌕⚡
