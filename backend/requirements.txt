@@ -1,0 +1,8 @@
+flask
+flask-cors
+psutil
+requests
+python-dotenv
+pytest
+langchain
+langchain-huggingface
