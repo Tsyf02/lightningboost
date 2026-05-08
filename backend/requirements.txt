@@ -4,3 +4,5 @@ psutil
 requests
 python-dotenv
 pytest
+langchain
+langchain-huggingface
