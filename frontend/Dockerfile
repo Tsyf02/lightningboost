@@ -23,4 +23,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 WORKDIR /app/frontend
 EXPOSE 8501
 
-CMD ["run", "streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
