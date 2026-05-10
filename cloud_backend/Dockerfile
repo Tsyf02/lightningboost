@@ -22,9 +22,10 @@ COPY . .
 # 4. Install the workspace projects themselves
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked
+ENV PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app/cloud_backend
 EXPOSE 8000
 
-# Run using uv (automatically uses the synced .venv)
-CMD ["uv", "run", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
+
+CMD ["run", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
