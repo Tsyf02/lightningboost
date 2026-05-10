@@ -1,6 +1,27 @@
 """
-LLM prompts for AI agent recommendations
+LLM prompts for AI agent recommendations and task routing
 """
+
+# ---------------------------------------------------------------------------
+# UI / Frontend Prompts
+# ---------------------------------------------------------------------------
+
+QUICK_PROMPTS =[
+    "Give me 5 specific tips to free up RAM on my laptop right now.",
+    "Which of my running processes should I close first?",
+    "Should I run this video export locally or offload to cloud?",
+    "Explain why my CPU is spiking and what I should do.",
+    "What startup apps can I safely disable to improve boot time?",
+]
+
+DEFAULT_VISION_PROMPT = (
+    "Analyze this system screenshot. Identify the top memory and CPU hogs. "
+    "Give 5 specific, actionable recommendations to free up resources."
+)
+
+# ---------------------------------------------------------------------------
+# Agent Analysis Prompts
+# ---------------------------------------------------------------------------
 
 SYSTEM_OPTIMIZATION_PROMPT = """You are a helpful system optimization assistant. Given the current system metrics, provide 1-3 specific, actionable recommendations to free up RAM and improve performance.
 

@@ -1,34 +1,74 @@
+# BUG 5 FIX: Dual-model vLLM setup
+#   vllm-vision → Qwen3-VL-32B on port 8080  (multimodal screenshots)
+#   vllm-text   → Qwen3.5-35B-A3B on port 8081 (fast streaming text)
+# BUG 2 FIX: psutil removed from backend; local_agent pushes metrics via /metrics
+
 services:
-  vllm:
+
+  # ── Vision model (Qwen3-VL-32B) ─────────────────────────────────────────────
+  vllm-vision:
     image: rocm/vllm:latest
-    container_name: lb_vllm
+    container_name: lb_vllm_vision
     profiles: ["gpu"]
     devices:
       - /dev/kfd
       - /dev/dri
     group_add: [video]
     ipc: host
-    shm_size: "16g"
+    shm_size: "24g"
     ports:
-      - "8001:8000"
+      - "8080:8000"
     environment:
       HUGGING_FACE_HUB_TOKEN: ${HF_API_TOKEN:-}
       HIP_VISIBLE_DEVICES: "0"
     command: >
-      --model ${VLLM_MODEL:-meta-llama/Llama-3.1-8B-Instruct}
+      --model ${VLLM_VL_MODEL:-Qwen/Qwen2-VL-72B-Instruct}
       --dtype float16
       --max-model-len 4096
-      --gpu-memory-utilization 0.90
+      --gpu-memory-utilization 0.45
+      --limit-mm-per-prompt image=4
     volumes:
       - vllm_cache:/root/.cache/huggingface
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 30s
       timeout: 10s
-      start_period: 120s
+      start_period: 180s
       retries: 5
     restart: unless-stopped
 
+  # ── Fast text model (Qwen3.5-35B-A3B, MoE) ──────────────────────────────────
+  vllm-text:
+    image: rocm/vllm:latest
+    container_name: lb_vllm_text
+    profiles: ["gpu"]
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add: [video]
+    ipc: host
+    shm_size: "24g"
+    ports:
+      - "8081:8000"
+    environment:
+      HUGGING_FACE_HUB_TOKEN: ${HF_API_TOKEN:-}
+      HIP_VISIBLE_DEVICES: "0"
+    command: >
+      --model ${VLLM_TEXT_MODEL:-Qwen/Qwen2.5-72B-Instruct}
+      --dtype float16
+      --max-model-len 8192
+      --gpu-memory-utilization 0.45
+    volumes:
+      - vllm_cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 180s
+      retries: 5
+    restart: unless-stopped
+
+  # ── FastAPI cloud backend ─────────────────────────────────────────────────────
   backend:
     build:
       context: ..
@@ -37,15 +77,21 @@ services:
     ports:
       - "8000:8000"
     environment:
-      HF_API_TOKEN: ${HF_API_TOKEN:-}
-      CLOUD_API_KEY: ${CLOUD_API_KEY:-lightningboost_secret}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      CLOUD_HOST: 0.0.0.0
-      CLOUD_PORT: 8000
-      VLLM_BASE_URL: ${VLLM_BASE_URL:-http://vllm:8000}
-      VLLM_MODEL: ${VLLM_MODEL:-meta-llama/Llama-3.1-8B-Instruct}
-      RAM_THRESHOLD_HIGH: ${RAM_THRESHOLD_HIGH:-80}
-      RAM_THRESHOLD_MEDIUM: ${RAM_THRESHOLD_MEDIUM:-60}
+      HF_API_TOKEN:            ${HF_API_TOKEN:-}
+      CLOUD_API_KEY:           ${CLOUD_API_KEY:-lightningboost_secret}
+      LOG_LEVEL:               ${LOG_LEVEL:-INFO}
+      CLOUD_HOST:              0.0.0.0
+      CLOUD_PORT:              8000
+      # BUG 5 companion: backend knows both model URLs
+      VL_MODEL_URL:            http://vllm-vision:8080
+      TEXT_MODEL_URL:          http://vllm-text:8081
+      VLLM_VL_MODEL:           ${VLLM_VL_MODEL:-Qwen/Qwen2-VL-72B-Instruct}
+      VLLM_TEXT_MODEL:         ${VLLM_TEXT_MODEL:-Qwen/Qwen2.5-72B-Instruct}
+      # Legacy single-model client (kept for /api/v1/inference)
+      VLLM_BASE_URL:           ${VLLM_BASE_URL:-http://vllm-text:8000}
+      VLLM_MODEL:              ${VLLM_MODEL:-Qwen/Qwen2.5-72B-Instruct}
+      RAM_THRESHOLD_HIGH:      ${RAM_THRESHOLD_HIGH:-80}
+      RAM_THRESHOLD_MEDIUM:    ${RAM_THRESHOLD_MEDIUM:-60}
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 15s
@@ -53,10 +99,14 @@ services:
       retries: 3
     restart: unless-stopped
     depends_on:
-      vllm:
+      vllm-vision:
+        condition: service_healthy
+        required: false
+      vllm-text:
         condition: service_healthy
         required: false
 
+  # ── Streamlit frontend ────────────────────────────────────────────────────────
   frontend:
     build:
       context: ..
@@ -65,11 +115,15 @@ services:
     ports:
       - "8501:8501"
     environment:
-      HF_API_TOKEN: ${HF_API_TOKEN:-}
-      CLOUD_API_KEY: ${CLOUD_API_KEY:-lightningboost_secret}
-      CLOUD_BASE_URL: http://backend:8000
-      VLLM_BASE_URL: ${VLLM_BASE_URL:-http://vllm:8000}
-      DASHBOARD_REFRESH_SECONDS: ${DASHBOARD_REFRESH_SECONDS:-3}
+      HF_API_TOKEN:               ${HF_API_TOKEN:-}
+      CLOUD_API_KEY:              ${CLOUD_API_KEY:-lightningboost_secret}
+      # BUG 2 FIX: frontend hits cloud backend for metrics (not psutil directly)
+      AMD_BACKEND_URL:            http://backend:8000
+      CLOUD_BASE_URL:             http://backend:8000
+      # BUG 5 companion: frontend uses these for direct health pings in sidebar
+      VL_MODEL_URL:               http://vllm-vision:8080
+      TEXT_MODEL_URL:             http://vllm-text:8081
+      DASHBOARD_REFRESH_SECONDS:  ${DASHBOARD_REFRESH_SECONDS:-3}
     depends_on:
       backend:
         condition: service_healthy

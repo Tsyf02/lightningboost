@@ -5,7 +5,7 @@ from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
-import json
+
 
 from config import TaskType, ExecutionLocation, TaskStatus
 
