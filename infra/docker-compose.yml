@@ -22,11 +22,13 @@ services:
       HUGGING_FACE_HUB_TOKEN: ${HF_API_TOKEN:-}
       HIP_VISIBLE_DEVICES: "0"
     command: >
-      --model ${VLLM_VL_MODEL:-Qwen/Qwen2-VL-72B-Instruct}
+      vllm serve
+      --model ${VLLM_VL_MODEL:-Qwen/Qwen2-VL-7B-Instruct}
       --dtype float16
       --max-model-len 4096
       --gpu-memory-utilization 0.45
       --limit-mm-per-prompt image=4
+
     volumes:
       - vllm_cache:/root/.cache/huggingface
     healthcheck:
@@ -54,7 +56,8 @@ services:
       HUGGING_FACE_HUB_TOKEN: ${HF_API_TOKEN:-}
       HIP_VISIBLE_DEVICES: "0"
     command: >
-      --model ${VLLM_TEXT_MODEL:-Qwen/Qwen2.5-72B-Instruct}
+      vllm serve
+      --model ${VLLM_TEXT_MODEL:-Qwen/Qwen2.5-32B-Instruct-AWQ}
       --dtype float16
       --max-model-len 8192
       --gpu-memory-utilization 0.45
