@@ -189,7 +189,7 @@ async def analyze_stream(payload: StreamPayload):
         f"User query: {payload.prompt}"
     )
 
-    def _token_stream():
+    async def _token_stream():
         try:
             resp = requests.post(
                 f"{TEXT_MODEL_URL}/v1/completions",

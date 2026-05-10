@@ -85,8 +85,8 @@ services:
       # BUG 5 companion: backend knows both model URLs
       VL_MODEL_URL:            http://vllm-vision:8080
       TEXT_MODEL_URL:          http://vllm-text:8081
-      VLLM_VL_MODEL:           ${VLLM_VL_MODEL:-Qwen/Qwen2-VL-72B-Instruct}
-      VLLM_TEXT_MODEL:         ${VLLM_TEXT_MODEL:-Qwen/Qwen2.5-72B-Instruct}
+      VLLM_VL_MODEL: Qwen/Qwen2.5-VL-32B-Instruct-AWQ
+      VLLM_TEXT_MODEL: Qwen/Qwen2.5-32B-Instruct-AWQ
       # Legacy single-model client (kept for /api/v1/inference)
       VLLM_BASE_URL:           ${VLLM_BASE_URL:-http://vllm-text:8000}
       VLLM_MODEL:              ${VLLM_MODEL:-Qwen/Qwen2.5-72B-Instruct}
