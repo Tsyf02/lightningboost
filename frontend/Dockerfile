@@ -1,22 +1,24 @@
-FROM python:3.11-slim-bookworm
+FROM python:3.12-slim-trixie
 
-# Set working directory
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /app
 
-# Update and patch security vulnerabilities
-RUN apt-get update && apt-get upgrade -y && apt-get clean && rm -rf /var/lib/apt/lists/*
+COPY pyproject.toml uv.lock ./
+COPY cloud_backend/pyproject.toml ./cloud_backend/
+COPY shared/pyproject.toml ./shared/
+COPY local_agent/pyproject.toml ./local_agent/
+COPY frontend/pyproject.toml ./frontend/
 
-# Copy dependency files
-COPY requirements.txt ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-workspace
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
 
-# Copy application
-COPY . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked
 
-# Expose Streamlit port
+WORKDIR /app/frontend
 EXPOSE 8501
 
-# Default command
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["uv", "run", "streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]

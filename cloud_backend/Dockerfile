@@ -1,19 +1,30 @@
-FROM debian:bookworm-slim
+FROM python:3.12-slim-trixie
 
-# Set working directory
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /app
 
-# Copy dependency files first for efficient rebuilds
-COPY requirements.txt ./
+# 1. Copy workspace root + member pyproject.toml files for dependency caching
+COPY pyproject.toml uv.lock ./
+COPY cloud_backend/pyproject.toml ./cloud_backend/
+COPY shared/pyproject.toml ./shared/
+COPY local_agent/pyproject.toml ./local_agent/
+COPY frontend/pyproject.toml ./frontend/
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# 2. Install dependencies only (skip workspace projects for cache efficiency)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-workspace
 
-# Copy application source
-COPY . /app
+# 3. Copy the rest of the source code
+COPY . .
 
-# Expose backend port
+# 4. Install the workspace projects themselves
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked
+
+WORKDIR /app/cloud_backend
 EXPOSE 8000
 
-# Default command to run the server
-CMD ["python", "-m", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run using uv (automatically uses the synced .venv)
+CMD ["uv", "run", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]

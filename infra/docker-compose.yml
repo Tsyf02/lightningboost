@@ -1,73 +1,88 @@
-version: '3.8'
-
 services:
-  # vLLM Inference Engine (AMD MI300X GPU)
   vllm:
-    image: vllm/vllm-openai:latest
-    container_name: lightningboost-vllm
-    environment:
-      - MODEL_NAME=meta-llama/Llama-3.1-8B-Instruct
-      - CUDA_VISIBLE_DEVICES=0
-    volumes:
-      - vllm_cache:/root/.cache
+    image: rocm/vllm:latest
+    container_name: lb_vllm
+    profiles: ["gpu"]
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add: [video]
+    ipc: host
+    shm_size: "16g"
     ports:
       - "8001:8000"
+    environment:
+      HUGGING_FACE_HUB_TOKEN: ${HF_API_TOKEN:-}
+      HIP_VISIBLE_DEVICES: "0"
+    command: >
+      --model ${VLLM_MODEL:-meta-llama/Llama-3.1-8B-Instruct}
+      --dtype float16
+      --max-model-len 4096
+      --gpu-memory-utilization 0.90
+    volumes:
+      - vllm_cache:/root/.cache/huggingface
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: amd
-              count: 1
-              capabilities: [gpu]
+      start_period: 120s
+      retries: 5
+    restart: unless-stopped
 
-  # Cloud Backend API
-  cloud-backend:
+  backend:
     build:
-      context: ./cloud_backend
-      dockerfile: Dockerfile
-    container_name: lightningboost-backend
-    environment:
-      - VLLM_BASE_URL=http://vllm:8000
-      - CLOUD_HOST=0.0.0.0
-      - CLOUD_PORT=8000
+      context: ..
+      dockerfile: cloud_backend/Dockerfile
+    container_name: lb_backend
     ports:
       - "8000:8000"
+    environment:
+      HF_API_TOKEN: ${HF_API_TOKEN:-}
+      CLOUD_API_KEY: ${CLOUD_API_KEY:-lightningboost_secret}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      CLOUD_HOST: 0.0.0.0
+      CLOUD_PORT: 8000
+      VLLM_BASE_URL: ${VLLM_BASE_URL:-http://vllm:8000}
+      VLLM_MODEL: ${VLLM_MODEL:-meta-llama/Llama-3.1-8B-Instruct}
+      RAM_THRESHOLD_HIGH: ${RAM_THRESHOLD_HIGH:-80}
+      RAM_THRESHOLD_MEDIUM: ${RAM_THRESHOLD_MEDIUM:-60}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
     depends_on:
       vllm:
         condition: service_healthy
-    volumes:
-      - ./cloud_backend:/app
-      - ./shared:/app/shared
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+        required: false
 
-  # Frontend Dashboard
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: lightningboost-frontend
-    environment:
-      - CLOUD_BASE_URL=http://cloud-backend:8000
-      - VLLM_BASE_URL=http://vllm:8000
+      context: ..
+      dockerfile: frontend/Dockerfile
+    container_name: lb_frontend
     ports:
       - "8501:8501"
+    environment:
+      HF_API_TOKEN: ${HF_API_TOKEN:-}
+      CLOUD_API_KEY: ${CLOUD_API_KEY:-lightningboost_secret}
+      CLOUD_BASE_URL: http://backend:8000
+      VLLM_BASE_URL: ${VLLM_BASE_URL:-http://vllm:8000}
+      DASHBOARD_REFRESH_SECONDS: ${DASHBOARD_REFRESH_SECONDS:-3}
     depends_on:
-      - cloud-backend
-    volumes:
-      - ./frontend:/app
-      - ./shared:/app/shared
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8501/_stcore/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
 
 volumes:
   vllm_cache:
+    driver: local
 
 networks:
   default:
